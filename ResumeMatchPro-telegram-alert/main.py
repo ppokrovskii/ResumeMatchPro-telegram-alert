@@ -5,10 +5,16 @@ import requests
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
+
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     requests.post(url, json={"chat_id": CHAT_ID, "text": text})
 
+
+@app.function_name(name="ResumeMatchProTelegramAlert")
+@app.route(route="telegram-webhook")
 def main(req: func.HttpRequest) -> func.HttpResponse:
     try:
         alert = req.get_json()
