@@ -1,0 +1,23 @@
+version = 1
+revision = 1
+requires-python = ">=3.11"
+
+[[package]]
+name = "azure-functions"
+version = "1.22.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/e8/74cd3ff13927d48b9902a805ddbc3d74c93aae4d937e7fa6f449a1ef5cd4/azure-functions-1.22.1.tar.gz", hash = "sha256:235bb2a4e83d911a0bf4db3eec8f072ce6a0d2c2662bf8bc6d1bbe9389f10562", size = 207207 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f7/8e/37a70fb3051c0ffa923bbbf95db76435c26327a1f89231a33a03db0c6443/azure_functions-1.22.1-py3-none-any.whl", hash = "sha256:ae4e68bb734365ae74bb2f55bd04f33b8a3d83c0e079a394a4c26b378f7b5f6a", size = 187597 },
+]
+
+[[package]]
+name = "resumematchpro-telegram-alert"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "azure-functions" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "azure-functions", specifier = ">=1.22.1" }]

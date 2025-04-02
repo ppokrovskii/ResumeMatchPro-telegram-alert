@@ -1,0 +1,108 @@
+name: deploy ResumeMatchPro-telegram-alert
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+env:
+  AZURE_FUNCTIONAPP_NAME: ${{ github.ref_name == 'main' && 'resumematchpro-prod-function-app' || 'resumematchpro-dev-function-app' }}
+  PROJECT_PATH: 'ResumeMatchPro-telegram-alert'
+  PYTHON_VERSION: '3.11'
+  # Runtime settings
+  ENABLE_ORYX_BUILD: 'true'
+  SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
+  PYTHON_ISOLATE_WORKER_DEPENDENCIES: '1'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: '${{ env.PROJECT_PATH }}/requirements.txt'
+
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Verify uv installation
+      run: |
+        uv --version
+        if [ $? -ne 0 ]; then
+          echo "uv installation failed"
+          exit 1
+        fi
+
+    - name: 'Validate Python Installation'
+      run: |
+        python --version
+        if [ $? -ne 0 ]; then
+          echo "Python installation failed"
+          exit 1
+        fi
+
+    - name: 'Validate Project Structure'
+      run: |
+        pushd './${{ env.PROJECT_PATH }}'
+        if [ ! -f "pyproject.toml" ]; then
+          echo "pyproject.toml not found"
+          exit 1
+        fi
+        if [ ! -f "main.py" ]; then
+          echo "main.py not found"
+          exit 1
+        fi
+        if [ ! -f "hosts.json" ]; then
+          echo "hosts.json not found"
+          exit 1
+        fi
+        popd
+
+    - name: 'Generate requirements.txt from pyproject.toml'
+      run: |
+        pushd './${{ env.PROJECT_PATH }}'
+        uv pip compile pyproject.toml -o requirements.txt
+        popd
+
+    - name: 'Install Dependencies'
+      run: |
+        pushd './${{ env.PROJECT_PATH }}'
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+        popd
+
+    - name: 'List Deployment Files'
+      run: |
+        echo "=== Project Files ==="
+        find './${{ env.PROJECT_PATH }}' -type f -not -path "*/\.*" -not -path "*/__pycache__/*"
+        
+        echo "=== Python Packages ==="
+        ls -la './${{ env.PROJECT_PATH }}/.python_packages/lib/site-packages'
+
+    - name: 'Deploy to Azure Functions'
+      uses: Azure/functions-action@v1
+      id: fa
+      with:
+        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+        package: ${{ env.PROJECT_PATH }}
+        publish-profile: ${{ secrets.AZFUNCTIONS_PUBLISHING_PROFILE }}
+        scm-do-build-during-deployment: true
+        enable-oryx-build: true
+        respect-funcignore: true
+
+    - name: 'Post Deployment Check'
+      if: success()
+      run: |
+        echo "Deployment completed successfully"
+        echo "Function App URL: https://${{ env.AZURE_FUNCTIONAPP_NAME }}.azurewebsites.net"
