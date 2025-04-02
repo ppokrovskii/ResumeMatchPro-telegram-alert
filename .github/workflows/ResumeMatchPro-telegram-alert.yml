@@ -59,8 +59,8 @@ jobs:
           echo "pyproject.toml not found"
           exit 1
         fi
-        if [ ! -f "main.py" ]; then
-          echo "main.py not found"
+        if [ ! -f "function_app.py" ]; then
+          echo "function_app.py not found"
           exit 1
         fi
         if [ ! -f "hosts.json" ]; then
