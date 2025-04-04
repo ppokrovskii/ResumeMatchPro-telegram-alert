@@ -1,6 +1,7 @@
 import os
 import azure.functions as func
 import requests
+import json
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -17,13 +18,10 @@ def send_to_telegram(text):
 @app.route(route="telegram-webhook")
 def main(req: func.HttpRequest) -> func.HttpResponse:
     try:
-        alert = req.get_json()
-        essentials = alert.get("data", {}).get("essentials", {})
-        rule = essentials.get("alertRule", "Unknown")
-        description = essentials.get("description", "No description")
-        severity = essentials.get("severity", "Unknown")
-        message = f"🚨 *Alert Triggered*\nRule: {rule}\nDescription: {description}\nSeverity: {severity}"
-        send_to_telegram(message)
+        # Get the raw request body
+        req_body = req.get_body().decode('utf-8')
+        # Send the raw body to Telegram
+        send_to_telegram(req_body)
         return func.HttpResponse("Alert handled", status_code=200)
     except Exception as e:
         return func.HttpResponse(f"Error: {e}", status_code=500)
